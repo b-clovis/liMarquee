@@ -1,1309 +1,841 @@
 /*
- * jQuery liMarquee v 4.6
- *
- * Copyright 2013, Linnik Yura | LI MASS CODE | http://masscode.ru
- * http://masscode.ru/index.php/k2/item/44-limarquee
- * Free to use
- *
- * Last Update 20.11.2014
- */
+* jQuery liMarquee v 6.5.0
+*
+* Copyright 2013, Linnik Yura | LI MASS CODE | http://masscode.ru
+*
+* Last Update 27.10.2017
+*/
 (function ($) {
-	var methods = {
-		init: function (options) {
-			var p = {
-				direction: 'left', //Указывает направление движения содержимого контейнера (left | right | up | down)
-				loop: -1, //Задает, сколько раз будет прокручиваться содержимое. "-1" для бесконечного воспроизведения движения
-				scrolldelay: 0, //Величина задержки в миллисекундах между движениями
-				scrollamount: 50, //Скорость движения контента (px/sec)
-				circular: true, //Если "true" - строка непрерывная 
-				drag: true, //Если "true" - включено перетаскивание строки
-				runshort: true, //Если "true" - короткая строка тоже "бегает", "false" - стоит на месте
-				hoverstop: true, //true - строка останавливается при наведении курсора мыши, false - строка не останавливается
-				inverthover: false, //false - стандартное поведение. Если "true" - строка начинает движение только при наведении курсора
-				xml: false //Путь к xml файлу с нужным текстом
-			};
-			if (options) {
-				$.extend(p, options);
-			}
+"use strict";
+var methods = {
 
-			return this.each(function () {
-				var enterEvent = 'mouseenter';
-				var leaveEvent = 'mouseleave';
-				if(p.inverthover){
-					enterEvent = 'mouseleave';
-					leaveEvent = 'mouseenter';	
-				}
-				
-								
-				var
-					loop = p.loop,
-					strWrap = $(this).addClass('str_wrap').data({scrollamount:p.scrollamount}),
-					fMove = false;
-					
-				
-				
-				var strWrapStyle = strWrap.attr('style'); 
-				
-				if(strWrapStyle){
-					var wrapStyleArr = strWrapStyle.split(';');
-					var startHeight = false;
-					for(var i=0; i < wrapStyleArr.length; i++){
-						var str = $.trim(wrapStyleArr[i]);					
-						var tested =  str.search(/^height/g);
-						if(tested != -1){
-							startHeight = parseFloat(strWrap.css('height'));
-						}
-					}
-				}
+/* === Default Settings === */
+init: function (options) {
 
-				var code = function () {
-					
-					strWrap.off('mouseleave');
-					strWrap.off('mouseenter');
-					strWrap.off('mousemove');
-					strWrap.off('mousedown');
-					strWrap.off('mouseup');
+var p = {
+width:'auto', //Sets width of the Marquee.
+height:'auto', //Sets height of the Marquee.
+direction:'left', //Sets the direction of the Marquee.
+//It may take the values: "left", "right", "top", "bottom"
+scrollDelay:85, //Sets the interval between each scroll movement in milliseconds.
+//The default value is 85.
+//Note that any value smaller than 60 is ignored and the value 60 is used instead, unless truespeed is specified.
+scrollAmount:6, //Sets the amount of scrolling at each interval in pixels.
+//The default value is 6.
+circular:false, //Creates the effect of an infinite line.
+//It may take the values: true, false
+dragAndDrop:true, //Enable the opportunity to drag the Marquee by the mouse.
+//It may take the values: true, false
+hoverStop:true, //Enable the opportunity to pause the Marquee when mouse hover.
+//It may take the values: true, false
+scrollStop:true, //Enable the opportunity to pause the Marquee when scroll page.
+//It may take the values: true, false
+startShow:false, //If it is true - the content of marquee appears immediately if the lie - gradually
+xml:false, //Path to XML file or false
+touchEvent:true, //This parameter determines if the ticker responds to touch events or not
+//It may take the values: true or false
+stopOutScreen: true, //This parameter specifies, the ticker will stop outside the screen or not
+//It may take the values: true or false
 
-					
-					if(!$('.str_move',strWrap).length){
-						strWrap.wrapInner($('<div>').addClass('str_move'));
-					}
-					
-					var
-					strMove = $('.str_move', strWrap).addClass('str_origin'),
-					strMoveClone = strMove.clone().removeClass('str_origin').addClass('str_move_clone'),
-					time = 0;
+create:function(){}, //Triggered when the liMarquee is created.
 
-					if (!p.hoverstop) {
-						strWrap.addClass('noStop');
-					}
+moveStart:function(){}, //Triggered when motion starts.
+moveStop:function(){}, //Triggered when motion stops.
 
-					var circCloneHor = function(){
-						strMoveClone.clone().css({
-							left:'100%',
-							right:'auto',							
-							width: strMove.width()
-						}).appendTo(strMove);
-						strMoveClone.css({
-							right: '100%',
-							left:'auto',
-							width: strMove.width()
-						}).appendTo(strMove);
-					}
-					
-					var circCloneVert = function(){
-						strMoveClone.clone().css({
-							top: '100%',
-							bottom:'auto',
-							height: strMove.height()
-						}).appendTo(strMove);
-						strMoveClone.css({
-							bottom: '100%',
-							top:'auto',
-							height:strMove.height()
-						}).appendTo(strMove);
-					}
-					
-					
-					
-					if (p.direction == 'left') {
-						strWrap.height(strMove.outerHeight())
-						if (strMove.width() > strWrap.width()) {
-							var leftPos = -strMove.width();
-							
-							if (p.circular) {
-								
-								if (!p.xml) {
-									circCloneHor()
-									leftPos = -(strMove.width() + (strMove.width() - strWrap.width()));
-								}
-							}
-							if (p.xml) {
-								strMove.css({
-									left:strWrap.width()	
-								})
-							}
-							var
-							strMoveLeft = strWrap.width(),
-								k1 = 0,
-								timeFunc1 = function () {
-									var
-									fullS = Math.abs(leftPos),
-										time = (fullS / strWrap.data('scrollamount')) * 1000;
-									if (parseFloat(strMove.css('left')) != 0) {
-										fullS = (fullS + strWrap.width());
-										time = (fullS - (strWrap.width() - parseFloat(strMove.css('left')))) / strWrap.data('scrollamount') * 1000;
-									}
-									return time;
-								},
-								moveFuncId1 = false,
-								moveFunc1 = function () {
-									if (loop != 0) {
-										strMove.stop(true).animate({
-											left: leftPos
-										}, timeFunc1(), 'linear', function () {
-											$(this).css({
-												left: strWrap.width()
-											});
-											if (loop == -1) {
-												moveFuncId1 = setTimeout(moveFunc1, p.scrolldelay);
-											} else {
-												loop--;
-												moveFuncId1 = setTimeout(moveFunc1, p.scrolldelay);
-											}
-										});
-									}
-								};
-								strWrap.data({
-									moveId: moveFuncId1	,
-									moveF : moveFunc1
-								})
-								if(!p.inverthover){
-									moveFunc1();
-								}
-							
-							if (p.hoverstop) {
-								strWrap.on(enterEvent, function () {
-									$(this).addClass('str_active');
-									clearTimeout(moveFuncId1);
-									strMove.stop(true);
-								}).on(leaveEvent, function () {
-									$(this).removeClass('str_active');
-									$(this).off('mousemove');
-									moveFunc1();
-								});
+drag:function(){}, //Triggered while the string is moved during the dragging.
+dragStart:function(){}, //Triggered when dragging starts.
+dragStop:function(){}, //Triggered when dragging stops.
+wayEnd:function(){}, //Triggered when way ended.
+removeContentFadeDuration:300 //The duration of fading when removing the content of marquee
 
-								if (p.drag) {
-									strWrap.on('mousedown', function (e) {
-										if(p.inverthover){
-											strMove.stop(true);
-										}
-										//drag
-										var dragLeft;
-										var dir = 1;
-										var newX;
-										var oldX = e.clientX;
-										//drag
-										
-										strMoveLeft = strMove.position().left;
-										k1 = strMoveLeft - (e.clientX - strWrap.offset().left);
-										
-										
-										
-										$(this).on('mousemove', function (e) {
-											fMove = true;
-											
-											//drag
-											newX = e.clientX;
-											if(newX > oldX){
-												dir = 1
-											}else{
-												dir = -1
-											}
-											oldX = newX	
-											dragLeft = k1 + (e.clientX - strWrap.offset().left);
-											
-											if (!p.circular) {
-												if(dragLeft < -strMove.width() && dir < 0){
-													dragLeft = strWrap.width();
-													strMoveLeft = strMove.position().left;
-													k1 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-												if(dragLeft > strWrap.width() && dir > 0){
-													dragLeft = -strMove.width();
-													strMoveLeft = strMove.position().left;
-													k1 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-											}else{
-												if(dragLeft < -strMove.width() && dir < 0){
-													dragLeft = 0;
-													strMoveLeft = strMove.position().left;
-													k1 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-												if(dragLeft > 0 && dir > 0){
-													dragLeft = -strMove.width();
-													strMoveLeft = strMove.position().left;
-													k1 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-	
-											}
-											
-											
-											strMove.stop(true).css({
-												left: dragLeft
-											});
-											//drag
-											
-										
-											
-										}).on('mouseup', function () {
-											$(this).off('mousemove');
-											if(p.inverthover){
-												strMove.trigger('mouseenter')
-											}
-											setTimeout(function () {                             
-												fMove = false
-											}, 50)
-											
-										});
-										return false;
-									})
-									.on('click', function () {
-										if (fMove) {
-											return false
-										}
-									});
-								} else {
-									strWrap.addClass('no_drag');
-								};
-							}
-						} else {
-							if (p.runshort) {
-								strMove.css({
-									left: strWrap.width()
-								});
-								var
-								strMoveLeft = strWrap.width(),
-									k1 = 0,
-									timeFunc = function () {
-										time = (strMove.width() + strMove.position().left) / strWrap.data('scrollamount') * 1000;
-										return time;
-									};
-								var moveFunc = function () {
-									var leftPos = -strMove.width();
-									strMove.animate({
-										left: leftPos
-									}, timeFunc(), 'linear', function () {
-										$(this).css({
-											left: strWrap.width()
-										});
-										if (loop == -1) {
-											setTimeout(moveFunc, p.scrolldelay);
-										} else {
-											loop--;
-											setTimeout(moveFunc, p.scrolldelay);
-										}
-									});
-								};
-								strWrap.data({
-									moveF : moveFunc
-								})
-								if(!p.inverthover){
-									moveFunc();
-								}
-								if (p.hoverstop) {
-									strWrap.on(enterEvent, function () {
-										$(this).addClass('str_active');
-										strMove.stop(true);
-									}).on(leaveEvent, function () {
-										$(this).removeClass('str_active');
-										$(this).off('mousemove');
-										moveFunc();
-									});
+};
 
-									if (p.drag) {
-										strWrap.on('mousedown', function (e) {
-											if(p.inverthover){
-												strMove.stop(true);
-											}
-											
-											//drag
-											var dragLeft;
-											var dir = 1;
-											var newX;
-											var oldX = e.clientX;
-											//drag
-											
-											strMoveLeft = strMove.position().left;
-											k1 = strMoveLeft - (e.clientX - strWrap.offset().left);
-											$(this).on('mousemove', function (e) {
-												fMove = true;
-												
-												
-												//drag
-												newX = e.clientX;
-												if(newX > oldX){
-													dir = 1
-												}else{
-													dir = -1
-												}
-												oldX = newX	
-												dragLeft = k1 + (e.clientX - strWrap.offset().left);
-												
-												if(dragLeft < -strMove.width() && dir < 0){
-													dragLeft = strWrap.width();
-													strMoveLeft = strMove.position().left;
-													k1 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-												if(dragLeft > strWrap.width() && dir > 0){
-													dragLeft = -strMove.width();
-													strMoveLeft = strMove.position().left;
-													k1 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-												
-												
-												strMove.stop(true).css({
-													left: dragLeft
-												});
-												
-												
-												
-											}).on('mouseup', function () {
-												if(p.inverthover){
-													strMove.trigger('mouseenter')
-												}
-												$(this).off('mousemove');
-												setTimeout(function () {                             
-													fMove = false
-												}, 50)
-											});
-											return false;
-										})
-										.on('click', function () {
-											if (fMove) {
-												return false
-											}
-										});
-									} else {
-										strWrap.addClass('no_drag');
-									};
-								}
-							} else {
-								strWrap.addClass('str_static');
-							}
-						};
-					};
-					if (p.direction == 'right') {
-						strWrap.height(strMove.outerHeight())
-						strWrap.addClass('str_right');
-						strMove.css({
-							left: -strMove.width(),
-							right: 'auto'
-						})
-						
-						if (strMove.width() > strWrap.width()) {
-							var leftPos = strWrap.width();
-							strMove.css({
-								left: 0
-							})
-							if (p.circular) {
-								if (!p.xml) {
-									circCloneHor()
-									//Определяем крайнюю точку
-									leftPos = strMove.width();
-								}
-							}
-							
-							var
-							k2 = 0;
-							timeFunc = function () {
-								var
-								fullS = strWrap.width(), //крайняя точка
-									time = (fullS / strWrap.data('scrollamount')) * 1000; //время
-								if (parseFloat(strMove.css('left')) != 0) {
-									fullS = (strMove.width() + strWrap.width());
-									time = (fullS - (strMove.width() + parseFloat(strMove.css('left')))) / strWrap.data('scrollamount') * 1000;
-								}
-								return time;
-							};
-							var moveFunc = function () {
-
-								if (loop != 0) {
-									strMove.animate({
-										left: leftPos
-									}, timeFunc(), 'linear', function () {
-										$(this).css({
-											left: -strMove.width()
-										});
-										if (loop == -1) {
-											setTimeout(moveFunc, p.scrolldelay);
-										} else {
-											loop--;
-											setTimeout(moveFunc, p.scrolldelay);
-										};
-									});
-								};
-							};
-							strWrap.data({
-								moveF : moveFunc
-							})
-					
-							if(!p.inverthover){
-								moveFunc();
-							}
-							if (p.hoverstop) {
-								strWrap.on(enterEvent, function () {
-									$(this).addClass('str_active');
-									strMove.stop(true);
-								}).on(leaveEvent, function () {
-									$(this).removeClass('str_active');
-									$(this).off('mousemove');
-									moveFunc();
-								});
-
-								if (p.drag) {
-									
-									strWrap.on('mousedown', function (e) {
-										if(p.inverthover){
-											strMove.stop(true);
-										}
-										
-										
-										//drag
-										var dragLeft;
-										var dir = 1;
-										var newX;
-										var oldX = e.clientX;
-										//drag
-										
-										strMoveLeft = strMove.position().left;
-										k2 = strMoveLeft - (e.clientX - strWrap.offset().left);
-										$(this).on('mousemove', function (e) {
-											
-											fMove = true;
-											
-											//drag
-											newX = e.clientX;
-											if(newX > oldX){
-												dir = 1
-											}else{
-												dir = -1
-											}
-											oldX = newX	
-											dragLeft = k2 + (e.clientX - strWrap.offset().left);
-
-
-											if (!p.circular) {
-
-												if(dragLeft < -strMove.width() && dir < 0){
-													dragLeft = strWrap.width();
-													strMoveLeft = strMove.position().left;
-													k2 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-												if(dragLeft > strWrap.width() && dir > 0){
-													dragLeft = -strMove.width();
-													strMoveLeft = strMove.position().left;
-													k2 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-											}else{
-												if(dragLeft < -strMove.width() && dir < 0){
-													dragLeft = 0;
-													strMoveLeft = strMove.position().left;
-													k2 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-												if(dragLeft > 0 && dir > 0){
-													dragLeft = -strMove.width();
-													strMoveLeft = strMove.position().left;
-													k2 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-	
-											}
-											
-											strMove.stop(true).css({
-												left: dragLeft
-											});
-											
-
-										}).on('mouseup', function () {
-											if(p.inverthover){
-												strMove.trigger('mouseenter')
-											}
-											$(this).off('mousemove');
-											setTimeout(function () {                             
-												fMove = false
-											}, 50)
-										});
-										return false;
-									})
-									.on('click', function () {
-										if (fMove) {
-											return false
-										}
-									});
-								} else {
-									strWrap.addClass('no_drag');
-								};
-							}
-						} else {
-														
-							if (p.runshort) {
-								
-								var k2 = 0;
-								var timeFunc = function () {
-									time = (strWrap.width() - strMove.position().left) / strWrap.data('scrollamount') * 1000;
-									return time;
-								};
-								var moveFunc = function () {
-									var leftPos = strWrap.width();
-									strMove.animate({
-										left: leftPos
-									}, timeFunc(), 'linear', function () {
-										$(this).css({
-											left: -strMove.width()
-										});
-										if (loop == -1) {
-											setTimeout(moveFunc, p.scrolldelay);
-										} else {
-											loop--;
-											setTimeout(moveFunc, p.scrolldelay);
-										};
-									});
-								};
-
-								strWrap.data({
-									moveF : moveFunc
-								})
-
-								if(!p.inverthover){
-									moveFunc();
-								}
-								if (p.hoverstop) {
-									strWrap.on(enterEvent, function () {
-										$(this).addClass('str_active');
-										strMove.stop(true);
-									}).on(leaveEvent, function () {
-										$(this).removeClass('str_active');
-										$(this).off('mousemove');
-										moveFunc();
-									});
-
-									if (p.drag) {
-										strWrap.on('mousedown', function (e) {
-											if(p.inverthover){
-												strMove.stop(true);
-											}
-											
-											//drag
-											var dragLeft;
-											var dir = 1;
-											var newX;
-											var oldX = e.clientX;
-											//drag
-											
-											strMoveLeft = strMove.position().left;
-											k2 = strMoveLeft - (e.clientX - strWrap.offset().left);
-											$(this).on('mousemove', function (e) {
-												fMove = true;
-												
-												
-												
-												//drag
-												newX = e.clientX;
-												if(newX > oldX){
-													dir = 1
-												}else{
-													dir = -1
-												}
-												oldX = newX	
-												dragLeft = k2 + (e.clientX - strWrap.offset().left);
-												
-												if(dragLeft < -strMove.width() && dir < 0){
-													dragLeft = strWrap.width();
-													strMoveLeft = strMove.position().left;
-													k2 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-												if(dragLeft > strWrap.width() && dir > 0){
-													dragLeft = -strMove.width();
-													strMoveLeft = strMove.position().left;
-													k2 = strMoveLeft - (e.clientX - strWrap.offset().left);
-												}
-
-												strMove.stop(true).css({
-													left:dragLeft
-												});
-												
-											}).on('mouseup', function () {
-												if(p.inverthover){
-													strMove.trigger('mouseenter')
-												}
-												$(this).off('mousemove');
-												setTimeout(function () {                             
-													fMove = false
-												}, 50)
-											});
-											return false;
-										})
-										.on('click', function () {
-											if (fMove) {
-												return false
-											}
-										});
-									} else {
-										strWrap.addClass('no_drag');
-									};
-								}
-							} else {
-								strWrap.addClass('str_static');
-							}
-						};
-					};
-					if (p.direction == 'up') {
-						strWrap.addClass('str_vertical');
-						
-						if (strMove.height() > strWrap.height()) {
-							var topPos = -strMove.height();
-							if (p.circular) {
-								if (!p.xml) {
-									circCloneVert();									
-									topPos = -(strMove.height() + (strMove.height() - strWrap.height()));
-								}
-							}
-							if (p.xml) {
-								strMove.css({
-									top:strWrap.height()	
-								})
-							}
-							var
-							k2 = 0;
-							timeFunc = function () {
-								var
-								fullS = Math.abs(topPos),
-									time = (fullS / strWrap.data('scrollamount')) * 1000;
-								if (parseFloat(strMove.css('top')) != 0) {
-									fullS = (fullS + strWrap.height());
-									time = (fullS - (strWrap.height() - parseFloat(strMove.css('top')))) / strWrap.data('scrollamount') * 1000;
-								}
-								
-								return time;
-							};
-							var moveFunc = function () {
-								if (loop != 0) {
-									strMove.animate({
-										top: topPos
-									}, timeFunc(), 'linear', function () {
-										$(this).css({
-											top: strWrap.height()
-										});
-										if (loop == -1) {
-											setTimeout(moveFunc, p.scrolldelay);
-										} else {
-											loop--;
-											setTimeout(moveFunc, p.scrolldelay);
-										};
-									});
-								};
-							};
-							
-							strWrap.data({
-								moveF : moveFunc
-							})
-							
-							if(!p.inverthover){
-								moveFunc();
-							}
-							if (p.hoverstop) {
-								strWrap.on(enterEvent, function () {
-									$(this).addClass('str_active');
-									strMove.stop(true);
-								}).on(leaveEvent, function () {
-									$(this).removeClass('str_active');
-									$(this).off('mousemove');
-									moveFunc();
-								});
-
-								if (p.drag) {
-									strWrap.on('mousedown', function (e) {
-										if(p.inverthover){
-											strMove.stop(true);
-										}
-										
-										//drag
-										var dragTop;
-										var dir = 1;
-										var newY;
-										var oldY = e.clientY;
-										//drag
-										
-										
-										strMoveTop = strMove.position().top;
-										k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-										$(this).on('mousemove', function (e) {
-											
-											fMove = true;
-
-											//drag
-											newY = e.clientY;
-											if(newY > oldY){
-												dir = 1
-											}else{
-												if(newY < oldY){
-													dir = -1
-												}
-											}
-											oldY = newY	
-											dragTop = k2 + e.clientY - strWrap.offset().top;
-
-
-											if (!p.circular){
-												if(dragTop < -strMove.height() && dir < 0){
-													dragTop = strWrap.height();
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}
-												if(dragTop > strWrap.height() && dir > 0){
-													dragTop = -strMove.height();
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}	
-											}else{
-												if(dragTop < -strMove.height() && dir < 0){
-													dragTop = 0;
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}
-												if(dragTop > 0 && dir > 0){
-													dragTop = -strMove.height();
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}
-											}
-
-
-											strMove.stop(true).css({
-												top: dragTop
-											});
-											//drag
-											
-											
-											
-											
-											
-											
-											
-											
-											
-											
-											
-											
-										}).on('mouseup', function () {
-											if(p.inverthover){
-												strMove.trigger('mouseenter')
-											}
-											$(this).off('mousemove');
-											setTimeout(function () {                             
-												fMove = false
-											}, 50)
-										});
-										return false;
-									})
-									.on('click', function () {
-										if (fMove) {
-											return false
-										}
-									});
-								} else {
-									strWrap.addClass('no_drag');
-								};
-							}
-						} else {
-							if (p.runshort) {
-								strMove.css({
-									top: strWrap.height()
-								});
-								var k2 = 0;
-								var timeFunc = function () {
-									
-									time = (strMove.height() + strMove.position().top) / strWrap.data('scrollamount') * 1000;
-									
-									return time;
-								};
-								var moveFunc = function () {
-									var topPos = -strMove.height();
-									strMove.animate({
-										top: topPos
-									}, timeFunc(), 'linear', function () {
-										$(this).css({
-											top: strWrap.height()
-										});
-										if (loop == -1) {
-											setTimeout(moveFunc, p.scrolldelay);
-										} else {
-											loop--;
-											setTimeout(moveFunc, p.scrolldelay);
-										};
-									});
-								};
-								strWrap.data({
-									moveF : moveFunc
-								})
-								if(!p.inverthover){
-									moveFunc();
-								}
-								if (p.hoverstop) {
-									strWrap.on(enterEvent, function () {
-										$(this).addClass('str_active');
-										strMove.stop(true);
-									}).on(leaveEvent, function () {
-										$(this).removeClass('str_active');
-										$(this).off('mousemove');
-										moveFunc();
-									});
-
-									if (p.drag) {
-										strWrap.on('mousedown', function (e) {
-											if(p.inverthover){
-												strMove.stop(true);
-											}
-											
-											//drag
-											var dragTop;
-											var dir = 1;
-											var newY;
-											var oldY = e.clientY;
-											//drag
-											
-											strMoveTop = strMove.position().top;
-											k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-											$(this).on('mousemove', function (e) {
-												
-												
-												fMove = true;
-
-												//drag
-												newY = e.clientY;
-												if(newY > oldY){
-													dir = 1
-												}else{
-													if(newY < oldY){
-														dir = -1
-													}
-												}
-												oldY = newY	
-												dragTop = k2 + e.clientY - strWrap.offset().top;
-												
-												if(dragTop < -strMove.height() && dir < 0){
-													dragTop = strWrap.height();
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}
-												if(dragTop > strWrap.height() && dir > 0){
-													dragTop = -strMove.height();
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}	
-												//*drag
-												
-												strMove.stop(true).css({
-													top: dragTop
-												});
-												
-												
-											}).on('mouseup', function () {
-												if(p.inverthover){
-													strMove.trigger('mouseenter')
-												}
-												$(this).off('mousemove');
-												setTimeout(function () {                             
-													fMove = false
-												}, 50)
-											});
-											return false;
-										})
-										.on('click', function () {
-											if (fMove) {
-												return false
-											}
-										});
-									} else {
-										strWrap.addClass('no_drag');
-									};
-								}
-							} else {
-								strWrap.addClass('str_static');
-							}
-						};
-					};
-					if (p.direction == 'down') {
-
-						strWrap.addClass('str_vertical').addClass('str_down');
-						strMove.css({
-							top: -strMove.height(),
-							bottom: 'auto'
-						})
-						if (strMove.height() > strWrap.height()) {
-							var topPos = strWrap.height();
-							if (p.circular) {
-								if (!p.xml) {
-									circCloneVert();									
-									topPos = strMove.height();
-								}
-							}
-							if (p.xml) {
-								strMove.css({
-									top:-strMove.height()
-								})
-							}
-							var
-							k2 = 0;
-							timeFunc = function () {
-								var
-								fullS = strWrap.height(), //крайняя точка
-									time = (fullS / strWrap.data('scrollamount')) * 1000; //время
-
-								if (parseFloat(strMove.css('top')) != 0) {
-									fullS = (strMove.height() + strWrap.height());
-									time = (fullS - (strMove.height() + parseFloat(strMove.css('top')))) / strWrap.data('scrollamount') * 1000;
-								}
-								return time;
-							};
-							var moveFunc = function () {
-
-								if (loop != 0) {
-									strMove.animate({
-										top: topPos
-									}, timeFunc(), 'linear', function () {
-										$(this).css({
-											top: -strMove.height()
-										});
-										if (loop == -1) {
-
-											setTimeout(moveFunc, p.scrolldelay);
-										} else {
-											loop--;
-											setTimeout(moveFunc, p.scrolldelay);
-										};
-									});
-								};
-							};
-							strWrap.data({
-								moveF : moveFunc
-							})
-							if(!p.inverthover){
-								moveFunc();
-							}
-							if (p.hoverstop) {
-								strWrap.on(enterEvent, function () {
-									$(this).addClass('str_active');
-									strMove.stop(true);
-								}).on(leaveEvent, function () {
-									$(this).removeClass('str_active');
-									$(this).off('mousemove');
-									moveFunc();
-								});
-
-								if (p.drag) {
-									strWrap.on('mousedown', function (e) {
-										if(p.inverthover){
-											strMove.stop(true);
-										}
-										
-										//drag
-										var dragTop;
-										var dir = 1;
-										var newY;
-										var oldY = e.clientY;
-										//drag
-										
-										
-										strMoveTop = strMove.position().top;
-										k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-										$(this).on('mousemove', function (e) {
-											
-											fMove = true;
-											
-											//drag
-											newY = e.clientY;
-											if(newY > oldY){
-												dir = 1
-											}else{
-												if(newY < oldY){
-													dir = -1
-												}
-											}
-											oldY = newY	
-											dragTop = k2 + e.clientY - strWrap.offset().top;
-
-
-											if (!p.circular){
-												if(dragTop < -strMove.height() && dir < 0){
-													dragTop = strWrap.height();
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}
-												if(dragTop > strWrap.height() && dir > 0){
-													dragTop = -strMove.height();
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}	
-											}else{
-												if(dragTop < -strMove.height() && dir < 0){
-													dragTop = 0;
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}
-												if(dragTop > 0 && dir > 0){
-													dragTop = -strMove.height();
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}
-											}
-
-
-											strMove.stop(true).css({
-												top: dragTop
-											});
-											//drag
+if (options) {
+$.extend(p, options);
+}
 
 
 
-										}).on('mouseup', function () {
-											if(p.inverthover){
-												strMove.trigger('mouseenter')
-											}
-											$(this).off('mousemove');
-											setTimeout(function () {                             
-												fMove = false
-											}, 50)
-										});
-										return false;
-									})
-									.on('click', function () {
-										if (fMove) {
-											return false
-										}
-									});
-								} else {
-									strWrap.addClass('no_drag');
-								};
-							}
-						} else {
-							if (p.runshort) {
-								var k2 = 0;
-								var timeFunc = function () {
-									time = (strWrap.height() - strMove.position().top) / strWrap.data('scrollamount') * 1000;
-									return time;
-								};
-								var moveFunc = function () {
-									var topPos = strWrap.height();
-									strMove.animate({
-										top: topPos
-									}, timeFunc(), 'linear', function () {
-										$(this).css({
-											top: -strMove.height()
-										});
-										if (loop == -1) {
-											setTimeout(moveFunc, p.scrolldelay);
-										} else {
-											loop--;
-											setTimeout(moveFunc, p.scrolldelay);
-										};
-									});
-								};
-								strWrap.data({
-									moveF : moveFunc
-								})
-								if(!p.inverthover){
-									moveFunc();
-								}
-								if (p.hoverstop) {
-									strWrap.on(enterEvent, function () {
-										$(this).addClass('str_active');
-										strMove.stop(true);
-									}).on(leaveEvent, function () {
-										$(this).removeClass('str_active');
-										$(this).off('mousemove');
-										moveFunc();
-									});
 
-									if (p.drag) {
-										strWrap.on('mousedown', function (e) {
-											if(p.inverthover){
-												strMove.stop(true);
-											}
-											
-											//drag
-											var dragTop;
-											var dir = 1;
-											var newY;
-											var oldY = e.clientY;
-											//drag
-											
-											strMoveTop = strMove.position().top;
-											k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-											$(this).on('mousemove', function (e) {
-												fMove = true;
+return this.each(function () {
+var mEl = $(this).addClass('mwrap');
 
-												//drag
-												newY = e.clientY;
-												if(newY > oldY){
-													dir = 1
-												}else{
-													if(newY < oldY){
-														dir = -1
-													}
-												}
-												oldY = newY	
-												dragTop = k2 + e.clientY - strWrap.offset().top;
-	
-	
-												if(dragTop < -strMove.height() && dir < 0){
-													dragTop = strWrap.height();
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}
-												if(dragTop > strWrap.height() && dir > 0){
-													dragTop = -strMove.height();
-													strMoveTop = strMove.position().top;
-													k2 = strMoveTop - (e.clientY - strWrap.offset().top);
-												}	
-												//*drag
-												
-												strMove.stop(true).css({
-													top: dragTop
-												});
-												
-												
-												
-												
-												
-												
-												
-												
-											}).on('mouseup', function () {
-												if(p.inverthover){
-													strMove.trigger('mouseenter')
-												}
-												$(this).off('mousemove');
-												setTimeout(function () {                             
-													fMove = false
-												}, 50)
-											})
-											return false;
-										})
-										.on('click', function () {
-											if (fMove) {
-												return false
-											}
-										});
-									} else {
-										strWrap.addClass('no_drag');
-									};
-								}
-							} else {
-								strWrap.addClass('str_static');
-							}
-						};
-					};
-					
-					
-					
-					
-				}
-				if (p.xml) {
-					$.ajax({
-						url: p.xml,
-						dataType: "xml",
-						success: function (xml) {
-							var xmlTextEl = $(xml).find('text');
-							var xmlTextLength = xmlTextEl.length;
-							for(var i = 0; i < xmlTextLength; i++){
-								var xmlElActive = xmlTextEl.eq(i);
-								var xmlElContent = xmlElActive.text();
-								var xmlItemEl = $('<span>').text(xmlElContent).appendTo(strWrap);
-								
-								if(p.direction == 'left' || p.direction == 'right'){
-									xmlItemEl.css({display:'inline-block',textAlign:'right'});	
-									if(i > 0){
-										xmlItemEl.css({width:strWrap.width()+xmlItemEl.width()});	
-									}
-								}
-								if(p.direction == 'down' || p.direction == 'up'){
-									xmlItemEl.css({display:'block',textAlign:'left'});	
-										if(i > 0){
-											xmlItemEl.css({paddingTop:strWrap.height()});
-										}
-								}
-								
-							}
-							code();
-						}
-					});
-				} else {
-					code();
-				}
-				strWrap.data({
-					ini:code,
-					startheight: startHeight	
-				})
-				
-				
-				
-				
-			});
-		},
-		update: function () {
-			var el = $(this);
-			var str_origin = $('.str_origin',el);
-			var str_move_clone = $('.str_move_clone',el);
-			str_origin.stop(true);
-			str_move_clone.remove();
-			el.data('ini')();
-		},
-		destroy: function () {
-			
-			var el = $(this);
-			var elMove = $('.str_move',el);
-			var startHeight = el.data('startheight');
-			
-			$('.str_move_clone',el).remove();
-			el.off('mouseenter');
-			el.off('mousedown');
-			el.off('mouseup');
-			el.off('mouseleave');
-			el.off('mousemove');
-			el.removeClass('noStop').removeClass('str_vertical').removeClass('str_active').removeClass('no_drag').removeClass('str_static').removeClass('str_right').removeClass('str_down');
-			
-			var elStyle = el.attr('style'); 
-			if(elStyle){
-				var styleArr = elStyle.split(';');
-				for(var i=0; i < styleArr.length; i++){
-					var str = $.trim(styleArr[i]);
-					var tested =  str.search(/^height/g);
-					if(tested != -1){
-						styleArr[i] = '';	
-					}
-				}
-				var newArr = styleArr.join(';');
-				var newStyle =  newArr.replace(/;+/g,';')
-			
-				if(newStyle == ';'){
-					el.removeAttr('style');	
-				}else{
-					el.attr('style',newStyle);	
-				}
-				
-				if(startHeight){
-					el.css({height:startHeight})	
-				}
-			}
-			elMove.stop(true);
+var mElIndex = $('*').index($(this));
+mEl.data().mElIndex = mElIndex;
 
-			if(elMove.length){
-				var context = elMove.html();
-				elMove.remove();
-				el.html(context);
-			}
-	
-		},
-		pause: function(){	
-			var el = $(this);
-			var elMove = $('.str_move',el);
-			elMove.stop(true);
-		}, 
-		play: function(){
-			var el = $(this);
-			$(this).off('mousemove');
-			el.data('moveF')();	
-		}
-		
-	};
-	$.fn.liMarquee = function (method) {
-		if (methods[method]) {
-			return methods[method].apply(this, Array.prototype.slice.call(arguments, 1));
-		} else if (typeof method === 'object' || !method) {
-			return methods.init.apply(this, arguments);
-		} else {
-			$.error('Метод ' + method + ' в jQuery.liMarquee не существует');
-		}
-	};
+/*== Extend Standart jQuery Method .position() ==*/
+var pos = function(el,parent){
+var oldObj = el.position();
+var wrapper = parent || $(document);
+
+var rightVal = (wrapper.outerWidth() - (el.position().left + el.outerWidth()));
+var bottomVal = (wrapper.outerHeight() - (el.position().top + el.outerHeight()));
+var newObj = {right:rightVal,bottom:bottomVal};
+
+$.extend(newObj, oldObj);
+return newObj;
+};
+mEl.data().style = mEl.attr('style');
+
+/*== Combine Options ==*/
+$.extend(p, mEl.data());
+$.extend(mEl.data(), p);
+
+/*== Create Moveing Container ==*/
+if(!$('.mMove',mEl).length){
+mEl.wrapInner('<div class="mMove"></div>');
+}
+var mMove = $('.mMove',mEl);
+
+/*== Set Base Style ==*/
+mEl.css({position:'relative',overflow:'hidden',maxWidth:'100%',height:mEl.data().height,width:mEl.data().width});
+
+if(mEl.data().scrollDelay <= 0 ){
+mEl.data().scrollDelay = 85;
+}
+
+/*== Creat Custom Size Function ==*/
+mEl.data().outerSizeFunc = function(el){
+if(mEl.data().direction === 'top' || mEl.data().direction === 'bottom'){
+return el.outerHeight();
+}else{
+return el.outerWidth();
+}
+}
+
+mMove.data().style = mMove.attr('style');
+if((!mEl.data().updateCont)){
+mMove.css({position:'absolute',left:'auto',right:'auto',top:'auto',bottom:'auto',float:'left'});
+}
+mEl.data().mMove = mMove;
+
+var createMarquee = function (){
+
+
+mEl.data().clickEventFlag = true;
+
+if(mEl.data().outerSizeFunc(mMove) > 0){
+
+/*== Splitting a String into Parts ==*/
+var mItem = $('.mItem',mEl);
+mItem.each(function(){
+$(this).data().style = $(this).attr('style');
+$(this).css({display:'inline', zoom:1 });
+});
+
+var splittingString = function(splitSide,mItem){
+mItem.css({paddingLeft:0, paddingRight:0, paddingTop:0, paddingBottom:0});
+if(mItem.length && !mEl.data().circular){
+var paddingVal = {};
+var paddingValFirst = {};
+paddingVal['padding-'+splitSide] = mEl.data().outerSizeFunc(mEl);
+paddingValFirst['padding-'+splitSide] = 0;
+mItem.css(paddingVal);
+mItem.eq(0).css(paddingValFirst);
+}
+};
+mEl.data().splittingString = splittingString;
+
+
+
+var contentString = $('<div>').addClass('cloneContent').html(mMove.html());
+
+if(mEl.data().direction === 'left' || mEl.data().direction === 'right'){
+mMove.css({whiteSpace:'nowrap'});
+mEl.data().splittingString('left',mItem);
+mEl.css({minHeight:mMove.outerHeight()});
+contentString.css({display:'inline-block'});
+mEl.data().axis = 'hor';
+}else{
+mMove.css({whiteSpace:'normal'});
+mItem.css({display:'block'});
+mEl.data().splittingString('top',mItem);
+if(mEl.outerHeight() === 0) {alert('Set Height Parametr for Plugin liMarquee');}
+contentString.css({display:'block'});
+mEl.data().axis = 'vert';
+}
+
+/*== Unselectable for IE ==*/
+var isIE = /*@cc_on!@*/false || document.documentMode;
+if(isIE){
+mEl.add(mEl.find('*')).attr('unselectable','on');
+}
+
+/*== Change Events ==*/
+var moveEvent = 'mousemove.'+mEl.data().mElIndex;
+var mousedownEvent = 'mousedown.'+mEl.data().mElIndex;
+var mouseupEvent = 'mouseup.'+mEl.data().mElIndex;
+var clickEvent = 'click.'+mEl.data().mElIndex;
+mEl.data({
+touchScreen:false,
+teleport:false,
+dragging:false,
+pause:false
+});
+if('ontouchstart' in window){
+moveEvent = 'touchmove.'+mEl.data().mElIndex;
+mousedownEvent = 'touchstart.'+mEl.data().mElIndex;
+mouseupEvent = 'touchend.'+mEl.data().mElIndex;
+mEl.data().touchScreen = true;
+if($(window).width() < 1000){
+mEl.data().hoverStop = false;
+}
+}
+
+mEl.data({
+moveEvent:moveEvent,
+mousedownEvent:mousedownEvent,
+mouseupEvent:mouseupEvent,
+clickEvent:clickEvent
+});
+
+/*== Creating Correct Amount of Contents ==*/
+var cloneContent = function(mMove){
+if(mEl.data().outerSizeFunc(mMove) !== 0){
+if(mEl.data().outerSizeFunc(mMove) < mEl.data().outerSizeFunc(mEl) && mEl.data().circular){
+contentString.clone().appendTo(mMove);
+mEl.data().cloneContent(mMove);
+}
+}else{
+console.log('The string is empty or contains invalid style');
+}
+};
+mEl.data().cloneContent = cloneContent;
+mEl.data().cloneContent(mMove);
+
+/*== This Function Creates Motion Animation Line ==*/
+var anim = function(sPos, ePos){
+if(!mEl.data().pause){
+
+if(sPos === undefined) {sPos = mEl.data().startPos;}
+if(ePos === undefined) {ePos = mEl.data().endPos;}
+if(ePos !== 0 && ePos !== -0){
+
+/*Calculate the Time for Animation to the formula (t = s/v)*/
+var way = (ePos - sPos);
+if(way < 0) {
+way = way * -1;
+}
+//var duration = (way/mEl.data().speed) * 1000;
+var duration = (way * mEl.data().scrollDelay)/mEl.data().scrollAmount;
+var directTypeStart = {};
+var directTypeEnd = {};
+
+directTypeStart = {
+left:'auto',
+right:'auto',
+top:'auto',
+bottom:'auto'
+};
+directTypeEnd = {
+left:'auto',
+right:'auto',
+top:'auto',
+bottom:'auto'
+};
+
+directTypeStart[mEl.data().direction] = sPos;
+directTypeEnd[mEl.data().direction] = ePos;
+
+mMove.css(directTypeStart);
+
+mEl.addClass('mIni');
+
+//Triggered when motion starts.
+mEl.data().stopped = false;
+if (mEl.data().moveStart !== undefined) {mEl.data().moveStart();}
+
+mMove.stop(true).animate(directTypeEnd,duration,'linear',function(){
+//Triggered when motion stop.
+if (mEl.data().moveStop !== undefined) {mEl.data().moveStop();}
+if (mEl.data().wayEnd !== undefined) {mEl.data().wayEnd();}
+mEl.data().teleport = true;
+anim();
+});
+}
+}
+};
+mEl.data().anim = anim;
+
+/*== Caching String and Creatin Clones of String ==*/
+var addClone = function(){
+var mMoveClone = mMove.clone().addClass('clone').css({position:'absolute', width:'100%', height:'100%',opacity:0});
+if(mEl.data().direction === 'top' || mEl.data().direction === 'bottom'){mMoveClone.css({left:0});}else{mMoveClone.css({top:0});}
+var value = {};
+var value2 = {};
+value[mEl.data().direction] = '-100%';
+value2[mEl.data().direction] = '100%';
+var cloneBefore = mMoveClone.clone().addClass('cloneBefore').css(value).appendTo(mMove);
+var cloneAfter = mMoveClone.clone().addClass('cloneAfter').css(value2).appendTo(mMove);
+if(mEl.data().circular){
+cloneBefore.add(cloneAfter).css({opacity:1});
+}
+};
+if(mEl.data().circular){
+addClone();
+}
+
+//Triggered when the liMarquee is created.
+if (mEl.data().create !== undefined) {mEl.data().create();}
+
+/*== This Function Determines the Coordinate of the Moving Line ==*/
+var nowPos = function(){
+return pos(mMove,mEl)[mEl.data().direction];
+};
+mEl.data().nowPos = nowPos;
+
+/*== This Function Determines the Coordinate of the Touch Event ==*/
+var correctEvent = function(e){
+var eventType = e;
+if(mEl.data().touchScreen){
+if (e.originalEvent.targetTouches.length === 1) {
+eventType = e.originalEvent.targetTouches[0];
+}
+}
+
+/*== Extend Standart jQuery Object of Event Coordinates ==*/
+var newParam = {
+left: eventType.pageX,
+top: eventType.pageY,
+right: ($(window).width() - eventType.pageX),
+bottom: ($(window).height() - eventType.pageY)
+};
+$.extend(eventType, newParam);
+return eventType;
+};
+
+if(mEl.data().hoverStop){
+mEl.on('mouseenter.'+mEl.data().mElIndex,function(){
+mEl.off('mouseleave.'+mEl.data().mElIndex);
+if(mEl.data().dragAndDrop){
+$('html').addClass('grab');
+}
+if(!mEl.data().stopped){
+mMove.stop(true);
+mEl.data().stopped = true;
+//Triggered when motion stop.
+if (mEl.data().moveStop !== undefined) {mEl.data().moveStop();}
+}
+mEl.on('mouseleave.'+mEl.data().mElIndex,function(){
+$(document).off(moveEvent);
+$('html').removeClass('grab');
+$('html').removeClass('grabbing');
+anim(mEl.data().nowPos());
+});
+});
+}
+if(!mEl.data().touchScreen && mEl.data().dragAndDrop || mEl.data().touchScreen && mEl.data().touchEvent){
+mEl.on(mousedownEvent, function (e) {
+$(document).off(moveEvent);
+$(document).off(mouseupEvent);
+mEl.off('mouseleave.'+mEl.data().mElIndex);
+$('html').addClass('grabbing');
+
+if(!mEl.data().stopped){
+mMove.stop(true);
+mEl.data().stopped = true;
+//Triggered when motion stop.
+if (mEl.data().moveStop !== undefined) {mEl.data().moveStop();}
+}
+
+/*== Start Drag and Drop of String ==*/
+var startMouseCoord = correctEvent(e)[mEl.data().direction];
+var startMouseY = correctEvent(e)['top'];
+var startMouseX = correctEvent(e)['left'];
+var vertSum = 0;
+var horSum = 0;
+var dir = 1;
+$(document).on(moveEvent,function(e){
+mEl.data().clickEventFlag = false;
+mEl.off('mouseleave.'+mEl.data().mElIndex);
+$('html').addClass('grabbing');
+if(!mEl.data().dragging){
+//Triggered when dragging starts.
+if (mEl.data().dragStart !== undefined) {mEl.data().dragStart();}
+mEl.data().dragging = true;
+}
+var nowPosVal = mEl.data().nowPos();
+if(!mEl.data().stopped){
+mMove.stop(true);
+mEl.data().stopped = true;
+}
+
+var newMouseCoord = correctEvent(e)[mEl.data().direction];
+
+var dragTrue = function(){
+
+if(newMouseCoord > startMouseCoord) {dir = 1;}
+if(newMouseCoord < startMouseCoord) {dir = -1;}
+
+var shiftVal = (startMouseCoord - newMouseCoord);
+startMouseCoord = newMouseCoord;
+
+var value = {};
+value[mEl.data().direction] = '-='+shiftVal;
+
+/*== Calculate Drag Position ==*/
+if(mEl.data().circular){
+if(nowPosVal <= mEl.data().outerSizeFunc(mMove) && !mEl.data().teleport){
+mEl.data().teleport = true;
+}
+if(nowPosVal <= (mEl.data().outerSizeFunc(mEl) - mEl.data().outerSizeFunc(mMove)) && dir < 0 && mEl.data().teleport){
+if (mEl.data().wayEnd !== undefined) {mEl.data().wayEnd();}
+value[mEl.data().direction] = '+='+mEl.data().outerSizeFunc(mMove);
+}
+if(nowPosVal >= 0 && dir > 0 && mEl.data().teleport){
+if (mEl.data().wayEnd !== undefined) {mEl.data().wayEnd();}
+value[mEl.data().direction] = '-='+mEl.data().outerSizeFunc(mMove);
+}
+}else{
+
+if(nowPosVal <= -mEl.data().outerSizeFunc(mMove) && dir < 0){
+if (mEl.data().wayEnd !== undefined) {mEl.data().wayEnd();}
+value[mEl.data().direction] = '+='+(mEl.data().outerSizeFunc(mMove)+mEl.data().outerSizeFunc(mEl));
+}
+if(nowPosVal >= mEl.data().outerSizeFunc(mEl) && dir > 0){
+if (mEl.data().wayEnd !== undefined) {mEl.data().wayEnd();}
+value[mEl.data().direction] = '-='+(mEl.data().outerSizeFunc(mMove)+mEl.data().outerSizeFunc(mEl));
+}
+
+}
+//Triggered while the string is dragging.
+if (mEl.data().drag !== undefined) {mEl.data().drag();}
+
+mMove.css(value);
+if(mEl.data().touchEvent){
+return false;
+}
+}
+
+//Detecting swipe direction
+if(mEl.data().axis == 'hor'){
+var newMouseY = correctEvent(e)['top'];
+var newMouseX = correctEvent(e)['left'];
+var vertDif = Math.abs(newMouseY - startMouseY);
+var horDif = Math.abs(newMouseX - startMouseX);
+vertSum += vertDif;
+horSum += horDif;
+if(vertSum > horSum){
+$(document).trigger(mouseupEvent);
+}else{
+dragTrue();
+}
+}else{
+dragTrue();
+}
+
+});
+
+$(document).on(mouseupEvent, function (e) {
+if(mEl.data().dragging){
+//Triggered when dragging starts.
+if (mEl.data().dragStop !== undefined) {mEl.data().dragStop();}
+mEl.data().dragging = false;
+}
+if($(e.target).is(mEl) || $(e.target).closest(mEl).length){
+$(document).off(moveEvent);
+$('html').removeClass('grabbing');
+if(mEl.data().hoverStop){
+mEl.trigger('mouseenter.'+mEl.data().mElIndex);
+}else{
+anim(mEl.data().nowPos());
+}
+}else{
+$(document).off(moveEvent);
+anim(mEl.data().nowPos());
+$('html').removeClass('grab');
+$('html').removeClass('grabbing');
+}
+$(document).off(mouseupEvent);
+setTimeout(function(){
+mEl.data().clickEventFlag = true;
+},300);
+});
+if(!mEl.data().touchScreen/* && !mEl.data().touchEvent*/){
+return false;
+}
+});
+}
+
+/*== Set the Starting Position of the String ==*/
+var getPosition = function(mEl){
+var mMove = mEl.data().mMove;
+var startPos = mEl.data().outerSizeFunc(mEl);
+var endPos = -mEl.data().outerSizeFunc(mMove);
+mEl.data().startPos = startPos;
+mEl.data().endPos = endPos;
+if(mEl.data().circular){
+endPos = - (mEl.data().outerSizeFunc(mMove) + (mEl.data().outerSizeFunc(mMove) - mEl.data().outerSizeFunc(mEl)));
+mEl.data().endPos = endPos;
+var circularPos = mEl.data().startShow ? mEl.data().outerSizeFunc(mMove) : (mEl.data().outerSizeFunc(mEl) + mEl.data().outerSizeFunc(mMove));
+anim(circularPos);
+}else{
+var tempStartPos = mEl.data().startShow ? 0 : startPos;
+anim(tempStartPos);
+}
+};
+mEl.data().getPosition = getPosition;
+
+var setPosition = function(mEl){
+var mMove = mEl.data().mMove;
+var startPos = mEl.data().outerSizeFunc(mEl);
+var endPos = -mEl.data().outerSizeFunc(mMove);
+mEl.data().startPos = startPos;
+mEl.data().endPos = endPos;
+
+if(mEl.data().circular){
+endPos = - (mEl.data().outerSizeFunc(mMove) + (mEl.data().outerSizeFunc(mMove) - mEl.data().outerSizeFunc(mEl)));
+mEl.data().endPos = endPos;
+}
+};
+
+mEl.data().setPosition = setPosition;
+if(!mEl.data().updateCont){
+mEl.data().getPosition(mEl);
+}
+
+/*== This function stops a marquee into an inactive browser tab ==*/
+var visibilityChanged = function(){
+if(document.hidden){
+if(!mEl.data().stopped){
+mMove.stop(true);
+mEl.data().stopped = true;
+//Triggered when motion stop.
+if (mEl.data().moveStop !== undefined) {mEl.data().moveStop();}
+}
+}else{
+anim(mEl.data().nowPos());
+}
+}
+$(document).on('visibilitychange',function(){
+visibilityChanged();
+})
+
+/*== When you change size of the screen - recalculate animation coordinates of marquee. ==*/
+var resizeId = function(){};
+$(window).on('resize.'+mEl.data().mElIndex,function(){
+clearTimeout(resizeId);
+resizeId = setTimeout(function(){
+mEl.liMarquee('resetPosition');
+},300);
+
+});
+
+/*== If marquee outside the screen, it stops and does not use CPU ==*/
+var scrollPageId = function(){};
+var detectStringPos = function(){
+if(mEl.data().stopOutScreen){
+if((mEl.offset().top + mEl.outerHeight()) < $(window).scrollTop() || mEl.offset().top > ($(window).scrollTop() + $(window).height())){
+if(!mEl.data().stopped){
+mMove.stop(true);
+mEl.data().stopped = true;
+//Triggered when motion stop.
+if (mEl.data().moveStop !== undefined) {mEl.data().moveStop();}
+}
+}else{
+anim(mEl.data().nowPos());
+}
+}else{
+anim(mEl.data().nowPos());
+}
+};
+$(window).on('scroll.'+mEl.data().mElIndex,function(){
+if(mEl.data().scrollStop && !mEl.data().stopped){
+mMove.stop(true);
+mEl.data().stopped = true;
+//Triggered when motion stop.
+if (mEl.data().moveStop !== undefined) {mEl.data().moveStop();}
+}
+clearTimeout(scrollPageId);
+scrollPageId = setTimeout(function(){
+detectStringPos();
+},100);
+});
+mEl.find('a').on('click',function(){
+if(!mEl.data().clickEventFlag){
+return false;
+}
+});
+detectStringPos();
+
+}else{
+mMove.text('marquee "'+mEl.attr('class')+'" elements is hidden or missing');
+createMarquee();
+mEl.liMarquee('stop');
+mEl.liMarquee('removeContent');
+}
+};
+
+/*== Loading XML Content ==*/
+if (mEl.data().xml){
+$.ajax({
+url: mEl.data().xml,
+dataType: "xml",
+success: function (xml) {
+var xmlItem = $(xml).find('item');
+var xmlItemLength = xmlItem.length;
+for(var i = 0; i < xmlItemLength; i++){
+var xmlItemActive = xmlItem.eq(i);
+var xmlItemContent = xmlItemActive.find('title').text();
+var xmlItemLink = xmlItemActive.find('link').text();
+
+if(xmlItemActive.find('link').length){
+$('<div class="mItem"><a href="'+xmlItemLink+'">'+xmlItemContent+'</a></div>').appendTo(mMove);
+}else{
+$('<div class="mItem">').text(xmlItemContent).appendTo(mMove);
+}
+}
+createMarquee();
+}
+});
+}else{
+createMarquee();
+}
+});
+},
+/*== Get Content ==*/
+getContent: function () {
+var mMove = $(this).data().mMove;
+var content;
+if(!mMove.is(':empty')){
+var moveContent = mMove.html();
+var tempEl = $('<div>').html(moveContent);
+tempEl.find('.clone').remove();
+tempEl.find('.cloneContent').remove();
+content = $.trim(tempEl.html());
+}else{
+content = false;
+}
+return content;
+},
+
+/*== Add Content ==*/
+addContent: function (per) {
+return this.each(function () {
+var mEl = $(this);
+var mMove = mEl.data().mMove;
+var addingFunc = function(){
+if(!mEl.data().removing){
+/*== Cashing Vars ==*/
+var newHtml = '<div class="mItem">'+per+'</div>';
+
+/*== Get old Content ==*/
+var oldCont = mEl.liMarquee('getContent');
+var newCont = oldCont;
+
+//Correct old Content
+if(!mMove.find('.mItem').length && oldCont){
+oldCont = '<div class="mItem">'+oldCont+'</div>';
+}
+
+//Create Combine Content
+if(per){
+if(mEl.data().direction === 'left' || mEl.data().direction === 'top') {newCont = oldCont ? oldCont+newHtml : newHtml;}
+if(mEl.data().direction === 'right' || mEl.data().direction === 'bottom') {newCont = oldCont ? newHtml+oldCont : newHtml;}
+}
+
+/*== Remove old Content ==*/
+mEl.liMarquee('removeContent');
+
+var addNewContFunc = function(){
+if(!mEl.data().removing){
+
+//Add New Content
+mMove.html(newCont);
+
+
+//Update Initialization
+if(oldCont){
+mEl.data().updateCont = true;
+}
+
+mEl.liMarquee(mEl.data());
+
+//Set End Position and Start Animation
+if(mEl.data().updateCont){
+mEl.data().setPosition(mEl);
+mEl.data().anim(mEl.data().nowPos());
+}
+}else{
+setTimeout(function(){
+addNewContFunc();
+},mEl.data().removeContentFadeDuration);
+}
+};
+addNewContFunc();
+
+}else{
+setTimeout(function(){
+addingFunc();
+},mEl.data().removeContentFadeDuration);
+}
+
+};
+addingFunc();
+});
+},
+
+/*== Remove Content ==*/
+removeContent: function () {
+return this.each(function () {
+$(this).data().removing = true;
+var mEl = $(this);
+var mMove = mEl.data().mMove;
+
+mMove.children().animate({opacity:0},mEl.data().removeContentFadeDuration);
+
+setTimeout(function(){
+mEl.data().updateCont = true;
+if(!mEl.data().stopped){
+mMove.stop(true);
+mEl.data().stopped = true;
+}
+mEl.off('mouseenter.'+mEl.data().mElIndex);
+mEl.off('mouseleave.'+mEl.data().mElIndex);
+mEl.off($(this).data().mousedownEvent);
+$(window).off('resize.'+mEl.data().mElIndex);
+$(window).off('scroll.'+mEl.data().mElIndex);
+$(document).off(mEl.data().moveEvent);
+$(document).off(mEl.data().mouseupEvent);
+if(!mEl.data().stopped){
+mMove.stop(true);
+mEl.data().stopped = true;
+}
+mMove.empty();
+mEl.data().removing = false;
+},mEl.data().removeContentFadeDuration);
+});
+},
+changeOptions: function (options) {
+return this.each(function () {
+var mEl = $(this);
+var mMove = mEl.data().mMove;
+var resetFlag = false;
+for (var par in options){
+if(par != 'scrollAmount' && par != 'scrollDelay' && par != 'direction'){
+resetFlag = true;
+}
+if(par == 'direction'){
+if(options[par] == 'right' || options[par] == 'left'){
+if(mEl.data().direction != 'left' && mEl.data().direction != 'right'){
+resetFlag = true;
+}
+}
+if(options[par] == 'top' || options[par] == 'bottom'){
+if(mEl.data().direction != 'top' && mEl.data().direction != 'bottom'){
+resetFlag = true;
+}
+}
+}
+}
+
+$.extend(mEl.data(), options);
+if(resetFlag){
+mEl.liMarquee('destroy');
+mEl.data().updateCont = false;
+mEl.liMarquee(mEl.data());
+}else{
+mEl.data().setPosition(mEl);
+mEl.data().anim(mEl.data().nowPos());
+}
+});
+},
+
+/* === Function of Destroy Marquee === */
+destroy: function () {
+var mEl = $(this);
+var mMove = mEl.data().mMove;
+mEl.removeAttr('style').attr('style',mEl.data().style);
+if(!mEl.data().stopped){
+mMove.stop(true);
+mEl.data().stopped = true;
+}
+mMove.removeAttr('style').attr('style',mMove.data().style).removeData();
+$('.mItem',mEl).each(function(){
+$(this).removeAttr('style').attr('style',$(this).data().style).removeData();
+});
+mEl.off('mouseenter.'+mEl.data().mElIndex);
+mEl.off('mouseleave.'+mEl.data().mElIndex);
+mEl.off(mEl.data().mousedownEvent);
+$(window).off('resize.'+mEl.data().mElIndex);
+$(window).off('scroll.'+mEl.data().mElIndex);
+if(mEl.data().moveEvent){
+$(document).off(mEl.data().moveEvent);
+}
+if(mEl.data().mouseupEvent){
+$(document).off(mEl.data().mouseupEvent);
+}
+$('.clone',mEl).remove();
+$('.cloneContent',mEl).remove();
+var mMoveContent = mMove.html();
+mMove.remove();
+mEl.html(mMoveContent).removeClass('mIni').css({opacity:1});
+},
+
+/* === Function of Pause Marquee === */
+stop: function(){
+return this.each(function () {
+var mEl = $(this);
+if(mEl.is('.mIni')){
+var mMove = mEl.data().mMove;
+if(!mEl.data().pause){
+mEl.data().pause = true;
+if(!mEl.data().stopped){
+mMove.stop(true);
+mEl.data().stopped = true;
+//Triggered when motion stop.
+if (mEl.data().moveStop !== undefined) {mEl.data().moveStop();}
+}
+}
+}
+})
+
+},
+
+/* === Function of Play Marquee === */
+start: function(delayNew){
+return this.each(function () {
+var mEl = $(this);
+if(mEl.data().pause){
+var delayVal = delayNew? delayNew : 0;
+setTimeout(function(){
+mEl.data().pause = false;
+mEl.data().setPosition(mEl);
+mEl.data().anim(mEl.data().nowPos());
+$(window).trigger('scroll.'+mEl.data().mElIndex);
+},delayVal);
+}
+});
+},
+
+/* === Reset Position === */
+resetPosition: function () {
+return this.each(function () {
+var mEl = $(this);
+if(mEl.is(':visible')){
+var mMove = mEl.data().mMove;
+if(!mEl.data().stopped){
+mMove.stop(true);
+mEl.data().stopped = true;
+}
+
+if(mEl.data().direction === 'left' || mEl.data().direction === 'right'){
+mEl.css({minHeight:mMove.outerHeight()});
+}
+mEl.data().setPosition(mEl);
+mEl.data().anim(mEl.data().nowPos());
+$(window).trigger('scroll.'+mEl.data().mElIndex);
+}
+});
+}
+};
+$.fn.liMarquee = function (method) {
+if (methods[method]) {
+return methods[method].apply(this, Array.prototype.slice.call(arguments, 1));
+} else if (typeof method === 'object' || !method) {
+return methods.init.apply(this, arguments);
+} else {
+$.error("Метод " + method + " в jQuery.liMarquee doesn't exist");
+}
+};
 })(jQuery);
